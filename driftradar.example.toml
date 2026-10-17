@@ -1,0 +1,10 @@
+# Copia este archivo como driftradar.toml o pon estas claves en [tool.driftradar] de tu pyproject.toml
+psi_warning = 0.10          # PSI desde el cual se marca "Alerta"
+psi_drift = 0.25            # PSI desde el cual se marca "Drift"
+p_value = 0.01              # α para KS / χ²
+null_rate_warning = 0.05    # cambio absoluto en % de nulos que dispara alerta
+bins = 10                   # bins por cuantiles para PSI numérico
+max_categories = 30         # categorías antes de agrupar en "__otros__"
+categorical_max_unique = 15 # numéricas con pocos valores únicos se tratan como categóricas
+exclude = ["id_solicitud", "fecha"]
+# columns = ["edad", "ingreso_mensual"]   # opcional: analizar solo estas

@@ -1,0 +1,71 @@
+name: "driftradar"
+description: "Detecta drift entre dos datasets y publica un reporte (HTML + resumen Markdown) en el job."
+author: "John Byron Alzate Hernández"
+branding:
+  icon: "activity"
+  color: "blue"
+
+inputs:
+  reference:
+    description: "Ruta al dataset de referencia"
+    required: true
+  current:
+    description: "Ruta al dataset actual"
+    required: true
+  exclude:
+    description: "Columnas a ignorar, separadas por comas"
+    required: false
+    default: ""
+  config:
+    description: "Ruta a driftradar.toml / pyproject.toml"
+    required: false
+    default: ""
+  fail-on:
+    description: "drift | warning | never"
+    required: false
+    default: "drift"
+  html:
+    description: "Ruta del reporte HTML"
+    required: false
+    default: "driftradar-report.html"
+  python-version:
+    description: "Versión de Python"
+    required: false
+    default: "3.12"
+
+outputs:
+  status:
+    description: "Estado global: ok | warning | drift"
+    value: ${{ steps.run.outputs.status }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Instalar driftradar
+      shell: bash
+      run: pip install --quiet "${{ github.action_path }}[parquet]"
+    - name: Ejecutar driftradar
+      id: run
+      shell: bash
+      env:
+        IN_REF: ${{ inputs.reference }}
+        IN_CUR: ${{ inputs.current }}
+        IN_EXCLUDE: ${{ inputs.exclude }}
+        IN_CONFIG: ${{ inputs.config }}
+        IN_FAIL: ${{ inputs.fail-on }}
+        IN_HTML: ${{ inputs.html }}
+      run: |
+        args=(compare "$IN_REF" "$IN_CUR" --html "$IN_HTML" --json driftradar-report.json \
+              --markdown "$GITHUB_STEP_SUMMARY" --fail-on "$IN_FAIL")
+        [ -n "$IN_EXCLUDE" ] && args+=(--exclude "$IN_EXCLUDE")
+        [ -n "$IN_CONFIG" ] && args+=(--config "$IN_CONFIG")
+        set +e
+        driftradar "${args[@]}"
+        code=$?
+        set -e
+        status=$(python -c "import json;print(json.load(open('driftradar-report.json'))['status'])" 2>/dev/null || echo error)
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+        exit $code
