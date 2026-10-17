@@ -1,0 +1,30 @@
+# Ejemplo de uso como "quality gate": compara los datos de ejemplo del repo
+# y publica el resumen en la pestaña Summary del job. Cópialo a tu proyecto.
+name: Drift check (ejemplo)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["examples/data/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detectar drift
+        uses: ./
+        with:
+          reference: examples/data/solicitudes_agosto.csv
+          current: examples/data/solicitudes_septiembre.csv
+          exclude: id_solicitud,fecha
+          fail-on: never
+      - name: Subir reporte HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: driftradar-report.html
